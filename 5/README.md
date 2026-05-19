@@ -9,6 +9,7 @@ mkdir -p /home/mission-user/mission/api_keys
 mkdir -p /home/mission-user/mission/logs
 
 chown -R mission-user:mission-user /home/mission-user/mission
+su - mission-user
 
 #.bashrc에 환경변수 추가 (로그아웃 후 재접속해도 유지되도록)
 cat <<EOF >> ~/.bashrc
@@ -30,8 +31,6 @@ echo "agent_api_key_test" > $AGENT_HOME/api_keys/secret.key
 
 chmod +x /home/mission-user/mission/monitor.sh
 chmod +x /home/mission-user/mission/agent-app-leak
-
-su - mission-user
 
 /home/mission-user/mission/agent-app-leak
 2026-05-15 07:04:46,131 [INFO] [MemoryWorker] Current Heap: 250MB
