@@ -107,4 +107,35 @@ source ~/.bashrc
 2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-2] Need resource [Shared_Memory_A] to write logs.
 2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-2] WAITING for [Shared_Memory_A]... (Status: BLOCKED)
 ```
+```bash
+1. Description (현상 설명)
+애플리케이션 실행 후 CPU 부하가 임계치를 초과하면서 `CPU Threshold Violated` 및 `WATCHDOG: INITIATING EMERGENCY ABORT` 로그와 함께 프로세스가 강제 종료되었다.
 
+2. Evidence & Logs (증거 자료)
+2026-05-18 07:44:44,780 [INFO] [CpuWorker] Current Load: 46.14%
+2026-05-18 07:44:47,885 [INFO] [CpuWorker] Current Load: 52.12%
+2026-05-18 07:44:47,986 [CRITICAL] [CpuWorker] CPU Threshold Violated! (52.11999999999999%).
+
+>>> [SYSTEM] WATCHDOG: INITIATING EMERGENCY ABORT (SIGTERM) <<<
+
+07:44:21 | PID:6943 | 2172KB | 0.0% | 50.0%
+07:44:21 | PID:6944 | 21676KB | 0.1% | 55.5%
+07:44:22 | PID:6943 | 2172KB | 0.0% | 8.2%
+07:44:22 | PID:6944 | 21676KB | 0.1% | 4.5%
+07:44:23 | PID:6943 | 2172KB | 0.0% | 4.4%
+07:44:23 | PID:6944 | 21724KB | 0.1% | 2.8%
+07:44:24 | PID:6943 | 2172KB | 0.0% | 3.0%
+07:44:24 | PID:6944 | 21724KB | 0.1% | 1.9%
+
+3. Root Cause Analysis (원인 분석)
+현상 분석: CPU 부하가 지속적으로 증가하며 내부 Watchdog 임계치를 초과하였다. 
+시스템 동작: 애플리케이션의 Watchdog 보호 정책이 과도한 CPU 점유를 감지하고 프로세스를 종료하였다.
+
+4. Workaround & Verification (조치 및 검증)
+조치 내용: 환경변수 설정을 통해 CPU_MAX_OCCUPY 값을 기존 70MB에서 10MB로 상향 조정하고 시스템에 적용했습니다.
+검증 결과: CPU 임계치 초과(CpuWorker)는 해결되었으나 멀티스레드 환경에서 스레드끼리 서로 자원을 기다리며 멈추는 Deadlock 문제가 발생하였다.
+
+2026-05-19 07:25:42,374 [WARNING] [AgentWorker] Initializing concurrent transaction processors...
+2026-05-19 07:25:42,374 [WARNING] [System] CAUTION: Strict resource locking is enabled.
+
+```
