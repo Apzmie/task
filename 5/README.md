@@ -66,6 +66,10 @@ source ~/.bashrc
 07:44:24 | PID:6943 | 2172KB | 0.0% | 3.0%
 07:44:24 | PID:6944 | 21724KB | 0.1% | 1.9%
 
-#맨 처음 켜질 때 뿜었던 엄청난 폭주 수치가 시간이 흐르면서 누적 평균 계산에 의해 점점 희석되어 낮아짐
+#`이는 `ps`가 프로세스 전체의 평균 CPU 사용률을 계산하는 반면, 애플리케이션 내부 Watchdog은 짧은 시간 동안의 순간 CPU 부하를 기준으로 판단하기 때문으로 보인다.
+
+sed -i 's/export CPU_MAX_OCCUPY=.*/export CPU_MAX_OCCUPY=80/g' /home/mission-user/.bashrc
+source ~/.bashrc
+
 ```
 
