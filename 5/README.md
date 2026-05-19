@@ -50,6 +50,8 @@ source ~/.bashrc
 2026-05-15 07:32:01,013 [CRITICAL] [CpuWorker] CPU Threshold Violated! (50.93%).
 ```
 ```bash
+[Bug] 메모리 임계치 초과로 인한 강제 종료 #1
+
 1. Description (현상 설명)
 agent-leak-app을 실행하면 메모리를 계속 먹다가 임계치인 256MB를 초과하면 MemoryGuard에 의해 강제 종료됨.
 
