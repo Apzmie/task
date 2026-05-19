@@ -42,6 +42,7 @@ To                         Action      From
 15034/tcp                  ALLOW       Anywhere
 20022/tcp (v6)             ALLOW       Anywhere (v6)
 15034/tcp (v6)             ALLOW       Anywhere (v6)
+#v6: 새 주소 체계
 ```
 
 ## 3
@@ -121,7 +122,7 @@ echo "agent_api_key_test" > $AGENT_KEY_PATH
 #동시부여, 하위 폴더/파일, 소유자 우선순위
 chown -R agent-admin:agent-core /home/agent-admin/agent-app
 chgrp agent-common /home/agent-admin/agent-app/upload_files
-chmod 750 /home/agent-admin/agent-app/agent_app.py
+chmod 750 /home/agent-admin/agent-app/agent_app
 
 su - agent-admin
 
@@ -148,7 +149,6 @@ mkdir -p /home/agent-admin/agent-app/bin
 
 chown agent-dev:agent-core /home/agent-admin/agent-app/bin/monitor.sh
 chmod 750 /home/agent-admin/agent-app/bin/monitor.sh
-service cron start
 
 su - agent-admin
 ~/agent-app/agent_app
