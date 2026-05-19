@@ -11,7 +11,7 @@ mkdir -p /home/mission-user/mission/logs
 chown -R mission-user:mission-user /home/mission-user/mission
 
 #.bashrc에 환경변수 추가 (로그아웃 후 재접속해도 유지되도록)
-cat <<EOF >> ~/.bashrc
+cat <<EOF >> /home/mission-user/.bashrc
 export AGENT_HOME=/home/mission-user/mission
 export AGENT_PORT=15034
 export AGENT_UPLOAD_DIR=\$AGENT_HOME/upload_files
@@ -22,17 +22,14 @@ export CPU_MAX_OCCUPY=70
 export MULTI_THREAD_ENABLE=true
 EOF
 
-#환경변수 즉시 적용
-source ~/.bashrc
-
 #secret.key 생성
-echo "agent_api_key_test" > $AGENT_HOME/api_keys/secret.key
+echo "agent_api_key_test" > /home/mission-user/mission/api_keys/secret.key
 
 chmod +x /home/mission-user/mission/monitor.sh
 chmod +x /home/mission-user/mission/agent-app-leak
 
 su - mission-user
-
+source ~/.bashrc
 /home/mission-user/mission/agent-app-leak
 2026-05-15 07:04:46,131 [INFO] [MemoryWorker] Current Heap: 250MB
 2026-05-15 07:04:49,171 [INFO] [MemoryWorker] Current Heap: 275MB
