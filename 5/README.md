@@ -108,6 +108,8 @@ source ~/.bashrc
 2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-2] WAITING for [Shared_Memory_A]... (Status: BLOCKED)
 ```
 ```bash
+[Bug] CPU 사용률 초과로 인한 강제 종료 #1
+
 1. Description (현상 설명)
 애플리케이션 실행 후 CPU 부하가 임계치를 초과하면서 `CPU Threshold Violated` 및 `WATCHDOG: INITIATING EMERGENCY ABORT` 로그와 함께 프로세스가 강제 종료되었다.
 
@@ -135,7 +137,11 @@ source ~/.bashrc
 조치 내용: 환경변수 설정을 통해 CPU_MAX_OCCUPY 값을 기존 70MB에서 10MB로 상향 조정하고 시스템에 적용했습니다.
 검증 결과: CPU 임계치 초과(CpuWorker)는 해결되었으나 멀티스레드 환경에서 스레드끼리 서로 자원을 기다리며 멈추는 Deadlock 문제가 발생하였다.
 
-2026-05-19 07:25:42,374 [WARNING] [AgentWorker] Initializing concurrent transaction processors...
-2026-05-19 07:25:42,374 [WARNING] [System] CAUTION: Strict resource locking is enabled.
+2026-05-19 07:25:47,379 [INFO] [AgentWorker][Worker-Thread-1] Processing critical data in Memory A...
+2026-05-19 07:25:47,379 [INFO] [AgentWorker][Worker-Thread-2] Establishing network connections in Pool B...
+2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-1] Need resource [Socket_Pool_B] to finish job.
+2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-1] WAITING for [Socket_Pool_B]... (Status: BLOCKED)
+2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-2] Need resource [Shared_Memory_A] to write logs.
+2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-2] WAITING for [Shared_Memory_A]... (Status: BLOCKED)
 
 ```
