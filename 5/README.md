@@ -145,3 +145,28 @@ source ~/.bashrc
 2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-2] WAITING for [Shared_Memory_A]... (Status: BLOCKED)
 
 ```
+```bash
+교착상태(Deadlock): 서로가 서로가 가진 걸 기다리면서 아무도 일을 못 하고 멈춰버린 상태
+상호 배제: 하나의 자원은 동시에 여러 사람이 함께 사용할 수 없음
+점유 대기: 하나 가지고 있으면서 다른 것도 기다림
+비선점: 강제로 뺏을 수 없음
+순환 대기: 서로가 원형으로 기다림
+
+04:39:51 | PID:309 | 21784KB | 0.1% | 0.2%
+[THREAD STATUS]
+    309     309 SNl+  0.2  0.1
+    309     478 SNl+  0.0  0.1
+    309     479 SNl+  0.0  0.1
+-----------------------------------
+S : Sleeping → 대기 상태 (CPU 안 쓰고 기다림)
+N : Nice (low priority) → 낮은 우선순위로 실행됨
+l : multi-threaded → 멀티스레드 프로세스
++ : foreground process → 현재 터미널에서 실행 중인 포그라운드 프로세스
+
+프로세스(PID 309)는 종료되지 않았으나, 전체 CPU 사용률이 0.2% 수준으로 정체되었다.
+또한 ps -L 결과에서 다수의 스레드(TID 478, 479)가 존재했지만, 각 스레드의 CPU 사용률이 0.0% 수준으로 유지되었다.
+이는 스레드들이 정상 작업을 수행하지 못하고 대기 상태에 머물러 있음을 시사한다.
+
+sed -i 's/export MULTI_THREAD_ENABLE=.*/export MULTI_THREAD_ENABLE=false/g' /home/mission-user/.bashrc
+source /home/mission-user/.bashrc
+```
