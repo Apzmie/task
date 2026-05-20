@@ -123,6 +123,7 @@ echo "agent_api_key_test" > $AGENT_KEY_PATH
 chown -R agent-admin:agent-core /home/agent-admin/agent-app
 chgrp agent-common /home/agent-admin/agent-app/upload_files
 chmod 750 /home/agent-admin/agent-app/agent_app
+#4 = read (r), 2 = write (w), 1 = execute (x)
 
 su - agent-admin
 
@@ -184,7 +185,7 @@ tail -f /var/log/agent-app/monitor.log
 [2026-05-14 06:05:27] PID: CPU:3.3% MEM:5% DISK_USED:1%
 [2026-05-14 06:05:29] PID: CPU:3.3% MEM:5% DISK_USED:1%
 
-# monitor.log 파일 내용 지우고 11MB 빈 파일로 덮어쓰기
+# data definition, monitor.log 파일 내용 지우고 11MB 빈 파일로 덮어쓰기
 dd if=/dev/zero of=/var/log/agent-app/monitor.log bs=1M count=11
 /home/agent-admin/agent-app/bin/monitor.sh
 
@@ -201,12 +202,12 @@ tail -f /var/log/agent-app/monitor.log
 
 ## 8
 ```bash
-SSH 포트 변경 및 Root 접속 차단: 무작위 대입 공격(Brute Force)의 자동화 스캐너 표적에서 벗어나 공격 표면(Attack Surface)을 획기적으로 줄이고, 단 한 번의 해킹으로 시스템 최고 권한이 탈취되는 최악의 시나리오를 방지
+SSH 포트 변경 및 Root 접속 차단: 무작위 대입 공격의 자동화 표적에서 벗어나 공격 표면을 획기적으로 줄이고, 단 한 번의 해킹으로 시스템 최고 권한이 탈취되는 최악의 시나리오를 방지
 agent-core 제한과 최소 권한 원칙: 특정 업무에 무관한 사용자의 접근을 원천 차단함으로써, 핵심 API 키 유출 및 로그 위변조 피해를 최소화
 운영상의 경고/종료 분리 이유: 방화벽이나 임계치 초과는 서비스 연속성을 유지하면서 관리자가 인지하고 조치할 수 있는 여유(운영 가용성)를 확보하기 위함
 >와 >> 차이: >는 기존 내용을 모두 지우고 새로 쓰지만, >>는 기존 데이터 뒤에 이어 쓰기
 
-Nginx 전환 시 핵심 포인트: 감시 대상을 nginx 프로세스와 80/443 포트로 바꾸고, 로그는 Nginx 웹 로그로, 임계값은 트래픽 기준에 맞게 수정
-프로세스 생존 중 포트 미개방: 설정 오류나 포트 중복이 원인이며, [에러 로그 확인] ➡️ [설정 파일 검증(nginx -t)] ➡️ [포트 점검(ss -lnpt)] 순으로 확인
+Nginx 전환 시 핵심 포인트: 감시 대상을 nginx 프로세스와 해당 포트로 바꾸고, 로그는 Nginx 웹 로그로, 임계값은 트래픽 기준에 맞게 수정
+프로세스 생존 중 포트 미개방: 설정 오류나 포트 중복이 원인이며, [에러 로그 확인] ➡️ [설정 파일 검증] ➡️ [포트 점검] 순으로 확인
 디스크 풀 위험 시 대응: 즉시 오래된 로그를 압축하거나 삭제(단기)하고, logrotate를 적용해 주기적으로 자동 정리되도록 설정(중기)
 ```
