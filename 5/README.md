@@ -108,7 +108,7 @@ source ~/.bashrc
 2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-2] WAITING for [Shared_Memory_A]... (Status: BLOCKED)
 ```
 ```bash
-[Bug] CPU 사용률 초과로 인한 강제 종료 #1
+[Bug] CPU 사용률 초과로 인한 강제 종료 #2
 
 1. Description (현상 설명)
 애플리케이션 실행 후 CPU 부하가 임계치를 초과하면서 `CPU Threshold Violated` 및 `WATCHDOG: INITIATING EMERGENCY ABORT` 로그와 함께 프로세스가 강제 종료되었다.
@@ -134,7 +134,7 @@ source ~/.bashrc
 시스템 동작: 애플리케이션의 Watchdog 보호 정책이 과도한 CPU 점유를 감지하고 프로세스를 종료하였다.
 
 4. Workaround & Verification (조치 및 검증)
-조치 내용: 환경변수 설정을 통해 CPU_MAX_OCCUPY 값을 기존 70MB에서 10MB로 상향 조정하고 시스템에 적용했습니다.
+조치 내용: 환경변수 설정을 통해 CPU_MAX_OCCUPY 값을 기존 70MB에서 10MB로 조정하고 시스템에 적용했습니다.
 검증 결과: CPU 임계치 초과(CpuWorker)는 해결되었으나 멀티스레드 환경에서 스레드끼리 서로 자원을 기다리며 멈추는 Deadlock 문제가 발생하였다.
 
 2026-05-19 07:25:47,379 [INFO] [AgentWorker][Worker-Thread-1] Processing critical data in Memory A...
@@ -152,7 +152,14 @@ source ~/.bashrc
 비선점: 강제로 뺏을 수 없음
 순환 대기: 서로가 원형으로 기다림
 
-04:39:51 | PID:309 | 21784KB | 0.1% | 0.2%
+2026-05-19 07:25:47,379 [INFO] [AgentWorker][Worker-Thread-1] Processing critical data in Memory A...
+2026-05-19 07:25:47,379 [INFO] [AgentWorker][Worker-Thread-2] Establishing network connections in Pool B...
+2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-1] Need resource [Socket_Pool_B] to finish job.
+2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-1] WAITING for [Socket_Pool_B]... (Status: BLOCKED)
+2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-2] Need resource [Shared_Memory_A] to write logs.
+2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-2] WAITING for [Shared_Memory_A]... (Status: BLOCKED)
+
+04:39:51 | PID:309 | 21784KB | 0.1% | 0.2% (mem, cpu)
 [THREAD STATUS]
     309     309 SNl+  0.2  0.1
     309     478 SNl+  0.0  0.1
@@ -169,4 +176,54 @@ l : multi-threaded → 멀티스레드 프로세스
 
 sed -i 's/export MULTI_THREAD_ENABLE=.*/export MULTI_THREAD_ENABLE=false/g' /home/mission-user/.bashrc
 source /home/mission-user/.bashrc
+
+2026-05-20 06:47:03,253 [INFO] [CpuWorker] Current Load: 10.00%
+2026-05-20 06:47:05,356 [INFO] [CpuWorker] Cooldown complete (5.00%). Resuming load increase...
+2026-05-20 06:47:05,774 [INFO] [MemoryWorker] Current Heap: 250MB
+2026-05-20 06:47:06,358 [INFO] [CpuWorker] Current Load: 5.00%
+2026-05-20 06:47:08,459 [INFO] [CpuWorker] Peak reached (10.00%). Starting cooldown...
+2026-05-20 06:47:08,815 [INFO] [MemoryWorker] Current Heap: 275MB
+
+06:47:13 | PID:825 | 328972KB | 2.0% | 1.6%
+[THREAD STATUS]
+    825     825 SNl+  0.1  2.0
+    825     898 SNl+  1.3  2.0
+    825     899 SNl+  0.2  2.0
+-----------------------------------
+
+#CPU와 메모리가 점진적으로 증가하다가 CPU 임계치(10%)에 도달하자 시스템이 자동으로 부하를 낮추는 제어가 동작한 상태
+```
+```bash
+[Bug] 교착상태로 인한 무한 대기 상태 #3
+1. Description (현상 설명)
+Worker-Thread들이 자원 대기 상태에 빠져 작업이 멈춘 교착상태(Deadlock) 현상이 발생함
+
+2. Evidence & Logs (증거 자료)
+2026-05-19 07:25:47,379 [INFO] [AgentWorker][Worker-Thread-1] Processing critical data in Memory A...
+2026-05-19 07:25:47,379 [INFO] [AgentWorker][Worker-Thread-2] Establishing network connections in Pool B...
+2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-1] Need resource [Socket_Pool_B] to finish job.
+2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-1] WAITING for [Socket_Pool_B]... (Status: BLOCKED)
+2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-2] Need resource [Shared_Memory_A] to write logs.
+2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-2] WAITING for [Shared_Memory_A]... (Status: BLOCKED)
+
+04:39:51 | PID:309 | 21784KB | 0.1% | 0.2% (mem, cpu)
+[THREAD STATUS]
+    309     309 SNl+  0.2  0.1
+    309     478 SNl+  0.0  0.1
+    309     479 SNl+  0.0  0.1
+-----------------------------------
+
+3. Root Cause Analysis (원인 분석)
+현상 분석: 각 Worker-Thread가 서로 다른 자원을 점유한 상태에서 상대 자원을 WAITING/BLOCKED 상태로 대기하고 있음이 확인됨
+시스템 동작: OS는 각 스레드가 이미 점유한 자원을 해제하지 않은 상태에서 추가 자원을 요청하는 점유 대기 구조를 허용하여, 상호 배제·점유 대기·비선점·순환 대기 조건이 동시에 충족되며 Deadlock 상태가 유지됨
+
+4. Workaround & Verification (조치 및 검증)
+조치 내용: 환경변수 설정을 통해 MULTI_THREAD_ENABLE을 기존 True에서 False로 조정하고 시스템에 적용했습니다. true는 여러 스레드가 동시에 실행되며 자원을 서로 나눠 쓰고 기다리는 구조라 충돌이 생기고, false는 한 번에 하나씩 순서대로 처리해서 기다림 자체가 발생하지 않음
+검증 결과: CPU와 메모리가 점진적으로 증가하다가 CPU 임계치(10%)에 도달하자 시스템이 자동으로 부하를 낮추는 제어가 동작하는 상태가 되었습니다.
+2026-05-20 06:47:03,253 [INFO] [CpuWorker] Current Load: 10.00%
+2026-05-20 06:47:05,356 [INFO] [CpuWorker] Cooldown complete (5.00%). Resuming load increase...
+2026-05-20 06:47:05,774 [INFO] [MemoryWorker] Current Heap: 250MB
+2026-05-20 06:47:06,358 [INFO] [CpuWorker] Current Load: 5.00%
+2026-05-20 06:47:08,459 [INFO] [CpuWorker] Peak reached (10.00%). Starting cooldown...
+2026-05-20 06:47:08,815 [INFO] [MemoryWorker] Current Heap: 275MB
 ```
