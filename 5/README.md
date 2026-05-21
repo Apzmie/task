@@ -37,6 +37,7 @@ source ~/.bashrc
 2026-05-15 07:04:49,172 [CRITICAL] [MemoryGuard] Self-terminating process 4135 to prevent system instability.
 
 /home/mission-user/mission/monitor.sh
+[시간] | [PID (프로세스 ID)] | [메모리 사용량] | [CPU 사용률] | [시스템 총 메모리 대비 점유율]
 07:04:45 | PID:4135 | 251956KB | 1.5% | 1.3%
 07:04:46 | PID:4134 | 2176KB | 0.0% | 0.2%
 07:04:46 | PID:4135 | 277560KB | 1.6% | 1.4%
