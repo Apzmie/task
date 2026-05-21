@@ -30,25 +30,10 @@ chmod +x /home/mission-user/mission/agent-app-leak
 
 su - mission-user
 source ~/.bashrc
-/home/mission-user/mission/agent-app-leak
-2026-05-15 07:04:46,131 [INFO] [MemoryWorker] Current Heap: 250MB
-2026-05-15 07:04:49,171 [INFO] [MemoryWorker] Current Heap: 275MB
-2026-05-15 07:04:49,172 [CRITICAL] [MemoryGuard] Memory limit exceeded (275MB >= 256MB) / (Recommend Over 256MB)
-2026-05-15 07:04:49,172 [CRITICAL] [MemoryGuard] Self-terminating process 4135 to prevent system instability.
-
-/home/mission-user/mission/monitor.sh
-[시간] | [PID (프로세스 ID)] | [메모리 사용량] | [CPU 사용률] | [시스템 총 메모리 대비 점유율]
-07:04:45 | PID:4135 | 251956KB | 1.5% | 1.3%
-07:04:46 | PID:4134 | 2176KB | 0.0% | 0.2%
-07:04:46 | PID:4135 | 277560KB | 1.6% | 1.4%
-07:04:47 | PID:4134 | 2176KB | 0.0% | 0.2%
 
 #스트림 에디터(Stream Editor): 파일 내용을 한 줄씩 흘려보내며 중간에서 가로채 편집
 sed -i 's/export MEMORY_LIMIT=.*/export MEMORY_LIMIT=512/g' /home/mission-user/.bashrc
 source ~/.bashrc
-
-2026-05-15 07:32:00,912 [INFO] [CpuWorker] Current Load: 50.93%
-2026-05-15 07:32:01,013 [CRITICAL] [CpuWorker] CPU Threshold Violated! (50.93%).
 ```
 ```bash
 [Bug] 메모리 임계치 초과로 인한 강제 종료 #1
@@ -58,17 +43,18 @@ agent-leak-app을 실행하면 메모리를 계속 먹다가 임계치인 256MB�
 
 2. Evidence & Logs (증거 자료)
 /home/mission-user/mission/agent-leak-app
-2026-05-15 07:04:46,131 [INFO] [MemoryWorker] Current Heap: 250MB
-2026-05-15 07:04:49,171 [INFO] [MemoryWorker] Current Heap: 275MB
-2026-05-15 07:04:49,172 [CRITICAL] [MemoryGuard] Memory limit exceeded (275MB >= 256MB) / (Recommend Over 256MB)
-2026-05-15 07:04:49,172 [CRITICAL] [MemoryGuard] Self-terminating process 4135 to prevent system instability.
+2026-05-21 05:21:08,633 [INFO] [MemoryWorker] Current Heap: 250MB
+2026-05-21 05:21:11,673 [INFO] [MemoryWorker] Current Heap: 275MB
+2026-05-21 05:21:11,673 [CRITICAL] [MemoryGuard] Memory limit exceeded (275MB >= 256MB) / (Recommend Over 256MB)
+2026-05-21 05:21:11,673 [CRITICAL] [MemoryGuard] Self-terminating process 3372 to prevent system instability.
+>>> [SYSTEM] SELF-TERMINATED (Memory Limit Exceeded) <<<
 
 #프로그램 자체를 유지하는 데 필요한 최소한의 숨은 메모리(약 2~3MB)가 더해졌기 때문에 수치가 다르게 나옴
 /home/mission-user/mission/monitor.sh
-07:04:45 | PID:4135 | 251956KB | 1.5% | 1.3%
-07:04:46 | PID:4134 | 2176KB | 0.0% | 0.2%
-07:04:46 | PID:4135 | 277560KB | 1.6% | 1.4%
-07:04:47 | PID:4134 | 2176KB | 0.0% | 0.2%
+05:21:08 | PID:3371 | 2132KB | 0.0% | 0.3%
+05:21:08 | PID:3372 | 251836KB | 1.5% | 1.2%
+05:21:09 | PID:3371 | 2132KB | 0.0% | 0.3%
+05:21:09 | PID:3372 | 277440KB | 1.6% | 1.3%
 
 3. Root Cause Analysis (원인 분석)
 현상 분석: 앱 내부에서 데이터가 해제되지 않고 계속 쌓여 설정된 메모리 임계치(256MB)를 초과하는 메모리 누수가 발생했습니다.
@@ -77,25 +63,17 @@ agent-leak-app을 실행하면 메모리를 계속 먹다가 임계치인 256MB�
 4. Workaround & Verification (조치 및 검증)
 조치 내용: 환경변수 설정을 통해 MEMORY_LIMIT 값을 기존 256MB에서 512MB로 상향 조정하고 시스템에 적용했습니다.
 검증 결과: 메모리 부족 종료(MemoryGuard)는 해결되었으나 이번에는 CPU 임계치 초과(CpuWorker)로 종료되었습니다.
-2026-05-15 07:32:00,912 [INFO] [CpuWorker] Current Load: 50.93%
-2026-05-15 07:32:01,013 [CRITICAL] [CpuWorker] CPU Threshold Violated! (50.93%).
-```
-```bash
-2026-05-18 07:44:44,780 [INFO] [CpuWorker] Current Load: 46.14%
-2026-05-18 07:44:47,885 [INFO] [CpuWorker] Current Load: 52.12%
-2026-05-18 07:44:47,986 [CRITICAL] [CpuWorker] CPU Threshold Violated! (52.11999999999999%).
-
+2026-05-21 05:31:15,441 [INFO] [CpuWorker] Current Load: 49.25%
+2026-05-21 05:31:18,544 [INFO] [CpuWorker] Current Load: 56.65%
+2026-05-21 05:31:18,646 [CRITICAL] [CpuWorker] CPU Threshold Violated! (56.65%).
 >>> [SYSTEM] WATCHDOG: INITIATING EMERGENCY ABORT (SIGTERM) <<<
 
-07:44:21 | PID:6943 | 2172KB | 0.0% | 50.0%
-07:44:21 | PID:6944 | 21676KB | 0.1% | 55.5%
-07:44:22 | PID:6943 | 2172KB | 0.0% | 8.2%
-07:44:22 | PID:6944 | 21676KB | 0.1% | 4.5%
-07:44:23 | PID:6943 | 2172KB | 0.0% | 4.4%
-07:44:23 | PID:6944 | 21724KB | 0.1% | 2.8%
-07:44:24 | PID:6943 | 2172KB | 0.0% | 3.0%
-07:44:24 | PID:6944 | 21724KB | 0.1% | 1.9%
-
+05:31:17 | PID:4187 | 2108KB | 0.0% | 0.4%
+05:31:17 | PID:4188 | 21588KB | 0.1% | 1.0%
+05:31:18 | PID:4187 | 2108KB | 0.0% | 0.4%
+05:31:18 | PID:4188 | 21588KB | 0.1% | 0.9%
+```
+```bash
 #`이는 `ps`가 프로세스 전체의 평균 CPU 사용률을 계산하는 반면, 애플리케이션 내부 Watchdog은 짧은 시간 동안의 순간 CPU 부하를 기준으로 판단하기 때문으로 보인다.
 
 sed -i 's/export CPU_MAX_OCCUPY=.*/export CPU_MAX_OCCUPY=10/g' /home/mission-user/.bashrc
