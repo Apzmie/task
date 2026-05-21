@@ -78,13 +78,6 @@ agent-leak-app을 실행하면 메모리를 계속 먹다가 임계치인 256MB�
 
 sed -i 's/export CPU_MAX_OCCUPY=.*/export CPU_MAX_OCCUPY=10/g' /home/mission-user/.bashrc
 source ~/.bashrc
-
-2026-05-19 07:25:47,379 [INFO] [AgentWorker][Worker-Thread-1] Processing critical data in Memory A...
-2026-05-19 07:25:47,379 [INFO] [AgentWorker][Worker-Thread-2] Establishing network connections in Pool B...
-2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-1] Need resource [Socket_Pool_B] to finish job.
-2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-1] WAITING for [Socket_Pool_B]... (Status: BLOCKED)
-2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-2] Need resource [Shared_Memory_A] to write logs.
-2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-2] WAITING for [Shared_Memory_A]... (Status: BLOCKED)
 ```
 ```bash
 [Bug] CPU 사용률 초과로 인한 강제 종료 #2
@@ -93,20 +86,17 @@ source ~/.bashrc
 애플리케이션 실행 후 CPU 부하가 임계치를 초과하면서 `CPU Threshold Violated` 및 `WATCHDOG: INITIATING EMERGENCY ABORT` 로그와 함께 프로세스가 강제 종료되었다.
 
 2. Evidence & Logs (증거 자료)
-2026-05-18 07:44:44,780 [INFO] [CpuWorker] Current Load: 46.14%
-2026-05-18 07:44:47,885 [INFO] [CpuWorker] Current Load: 52.12%
-2026-05-18 07:44:47,986 [CRITICAL] [CpuWorker] CPU Threshold Violated! (52.11999999999999%).
+2026-05-21 05:31:15,441 [INFO] [CpuWorker] Current Load: 49.25%
+2026-05-21 05:31:18,544 [INFO] [CpuWorker] Current Load: 56.65%
+2026-05-21 05:31:18,646 [CRITICAL] [CpuWorker] CPU Threshold Violated! (56.65%).
+>>> [SYSTEM] WATCHDOG: INITIATING EMERGENCY ABORT (SIGTERM) <<<
 
 >>> [SYSTEM] WATCHDOG: INITIATING EMERGENCY ABORT (SIGTERM) <<<
 
-07:44:21 | PID:6943 | 2172KB | 0.0% | 50.0%
-07:44:21 | PID:6944 | 21676KB | 0.1% | 55.5%
-07:44:22 | PID:6943 | 2172KB | 0.0% | 8.2%
-07:44:22 | PID:6944 | 21676KB | 0.1% | 4.5%
-07:44:23 | PID:6943 | 2172KB | 0.0% | 4.4%
-07:44:23 | PID:6944 | 21724KB | 0.1% | 2.8%
-07:44:24 | PID:6943 | 2172KB | 0.0% | 3.0%
-07:44:24 | PID:6944 | 21724KB | 0.1% | 1.9%
+05:31:17 | PID:4187 | 2108KB | 0.0% | 0.4%
+05:31:17 | PID:4188 | 21588KB | 0.1% | 1.0%
+05:31:18 | PID:4187 | 2108KB | 0.0% | 0.4%
+05:31:18 | PID:4188 | 21588KB | 0.1% | 0.9%
 
 3. Root Cause Analysis (원인 분석)
 현상 분석: CPU 부하가 지속적으로 증가하며 내부 Watchdog 임계치를 초과하였다. 
@@ -116,59 +106,31 @@ source ~/.bashrc
 조치 내용: 환경변수 설정을 통해 CPU_MAX_OCCUPY 값을 기존 70MB에서 10MB로 조정하고 시스템에 적용했습니다.
 검증 결과: CPU 임계치 초과(CpuWorker)는 해결되었으나 멀티스레드 환경에서 스레드끼리 서로 자원을 기다리며 멈추는 Deadlock 문제가 발생하였다.
 
-2026-05-19 07:25:47,379 [INFO] [AgentWorker][Worker-Thread-1] Processing critical data in Memory A...
-2026-05-19 07:25:47,379 [INFO] [AgentWorker][Worker-Thread-2] Establishing network connections in Pool B...
-2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-1] Need resource [Socket_Pool_B] to finish job.
-2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-1] WAITING for [Socket_Pool_B]... (Status: BLOCKED)
-2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-2] Need resource [Shared_Memory_A] to write logs.
-2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-2] WAITING for [Shared_Memory_A]... (Status: BLOCKED)
+2026-05-21 06:40:05,790 [INFO] [AgentWorker][Worker-Thread-1] LOCK ACQUIRED: [Shared_Memory_A]. (Holding...)
+2026-05-21 06:40:05,791 [INFO] [AgentWorker][Worker-Thread-2] LOCK ACQUIRED: [Socket_Pool_B]. (Holding...)
+2026-05-21 06:40:07,793 [INFO] [AgentWorker][Worker-Thread-1] WAITING for [Socket_Pool_B]... (Status: BLOCKED)
+2026-05-21 06:40:07,793 [INFO] [AgentWorker][Worker-Thread-2] WAITING for [Shared_Memory_A]... (Status: BLOCKED)
 
+06:40:13 | PID:4952 | 21680KB | 0.1% | 0.4%
+[THREAD STATUS]
+   4952    4952 SNl+  0.3  0.1
+   4952    5121 SNl+  0.0  0.1
+   4952    5122 SNl+  0.0  0.1
 ```
 ```bash
+S : Sleeping → 대기 상태 (CPU 안 쓰고 기다림)
+N : Nice (low priority) → 낮은 우선순위로 실행됨
+l : multi-threaded → 멀티스레드 프로세스
++ : foreground process → 현재 터미널에서 실행 중인 포그라운드 프로세스
+
 교착상태(Deadlock): 서로가 서로가 가진 걸 기다리면서 아무도 일을 못 하고 멈춰버린 상태
 상호 배제: 하나의 자원은 동시에 여러 사람이 함께 사용할 수 없음
 점유 대기: 하나 가지고 있으면서 다른 것도 기다림
 비선점: 강제로 뺏을 수 없음
 순환 대기: 서로가 원형으로 기다림
 
-2026-05-19 07:25:47,379 [INFO] [AgentWorker][Worker-Thread-1] Processing critical data in Memory A...
-2026-05-19 07:25:47,379 [INFO] [AgentWorker][Worker-Thread-2] Establishing network connections in Pool B...
-2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-1] Need resource [Socket_Pool_B] to finish job.
-2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-1] WAITING for [Socket_Pool_B]... (Status: BLOCKED)
-2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-2] Need resource [Shared_Memory_A] to write logs.
-2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-2] WAITING for [Shared_Memory_A]... (Status: BLOCKED)
-
-04:39:51 | PID:309 | 21784KB | 0.1% | 0.2% (mem, cpu)
-[THREAD STATUS]
-    309     309 SNl+  0.2  0.1
-    309     478 SNl+  0.0  0.1
-    309     479 SNl+  0.0  0.1
------------------------------------
-S : Sleeping → 대기 상태 (CPU 안 쓰고 기다림)
-N : Nice (low priority) → 낮은 우선순위로 실행됨
-l : multi-threaded → 멀티스레드 프로세스
-+ : foreground process → 현재 터미널에서 실행 중인 포그라운드 프로세스
-
-프로세스(PID 309)는 종료되지 않았으나, 전체 CPU 사용률이 0.2% 수준으로 정체되었다.
-또한 ps -L 결과에서 다수의 스레드(TID 478, 479)가 존재했지만, 각 스레드의 CPU 사용률이 0.0% 수준으로 유지되었다.
-이는 스레드들이 정상 작업을 수행하지 못하고 대기 상태에 머물러 있음을 시사한다.
-
 sed -i 's/export MULTI_THREAD_ENABLE=.*/export MULTI_THREAD_ENABLE=false/g' /home/mission-user/.bashrc
 source /home/mission-user/.bashrc
-
-2026-05-20 06:47:03,253 [INFO] [CpuWorker] Current Load: 10.00%
-2026-05-20 06:47:05,356 [INFO] [CpuWorker] Cooldown complete (5.00%). Resuming load increase...
-2026-05-20 06:47:05,774 [INFO] [MemoryWorker] Current Heap: 250MB
-2026-05-20 06:47:06,358 [INFO] [CpuWorker] Current Load: 5.00%
-2026-05-20 06:47:08,459 [INFO] [CpuWorker] Peak reached (10.00%). Starting cooldown...
-2026-05-20 06:47:08,815 [INFO] [MemoryWorker] Current Heap: 275MB
-
-06:47:13 | PID:825 | 328972KB | 2.0% | 1.6%
-[THREAD STATUS]
-    825     825 SNl+  0.1  2.0
-    825     898 SNl+  1.3  2.0
-    825     899 SNl+  0.2  2.0
------------------------------------
 
 #CPU와 메모리가 점진적으로 증가하다가 CPU 임계치(10%)에 도달하자 시스템이 자동으로 부하를 낮추는 제어가 동작한 상태
 ```
@@ -178,19 +140,16 @@ source /home/mission-user/.bashrc
 Worker-Thread들이 자원 대기 상태에 빠져 작업이 멈춘 교착상태(Deadlock) 현상이 발생함
 
 2. Evidence & Logs (증거 자료)
-2026-05-19 07:25:47,379 [INFO] [AgentWorker][Worker-Thread-1] Processing critical data in Memory A...
-2026-05-19 07:25:47,379 [INFO] [AgentWorker][Worker-Thread-2] Establishing network connections in Pool B...
-2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-1] Need resource [Socket_Pool_B] to finish job.
-2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-1] WAITING for [Socket_Pool_B]... (Status: BLOCKED)
-2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-2] Need resource [Shared_Memory_A] to write logs.
-2026-05-19 07:25:49,382 [INFO] [AgentWorker][Worker-Thread-2] WAITING for [Shared_Memory_A]... (Status: BLOCKED)
+2026-05-21 06:40:05,790 [INFO] [AgentWorker][Worker-Thread-1] LOCK ACQUIRED: [Shared_Memory_A]. (Holding...)
+2026-05-21 06:40:05,791 [INFO] [AgentWorker][Worker-Thread-2] LOCK ACQUIRED: [Socket_Pool_B]. (Holding...)
+2026-05-21 06:40:07,793 [INFO] [AgentWorker][Worker-Thread-1] WAITING for [Socket_Pool_B]... (Status: BLOCKED)
+2026-05-21 06:40:07,793 [INFO] [AgentWorker][Worker-Thread-2] WAITING for [Shared_Memory_A]... (Status: BLOCKED)
 
-04:39:51 | PID:309 | 21784KB | 0.1% | 0.2% (mem, cpu)
+06:40:13 | PID:4952 | 21680KB | 0.1% | 0.4%
 [THREAD STATUS]
-    309     309 SNl+  0.2  0.1
-    309     478 SNl+  0.0  0.1
-    309     479 SNl+  0.0  0.1
------------------------------------
+   4952    4952 SNl+  0.3  0.1
+   4952    5121 SNl+  0.0  0.1
+   4952    5122 SNl+  0.0  0.1
 
 3. Root Cause Analysis (원인 분석)
 현상 분석: 각 Worker-Thread가 서로 다른 자원을 점유한 상태에서 상대 자원을 WAITING/BLOCKED 상태로 대기하고 있음이 확인됨
@@ -199,10 +158,17 @@ Worker-Thread들이 자원 대기 상태에 빠져 작업이 멈춘 교착상태
 4. Workaround & Verification (조치 및 검증)
 조치 내용: 환경변수 설정을 통해 MULTI_THREAD_ENABLE을 기존 True에서 False로 조정하고 시스템에 적용했습니다. true는 여러 스레드가 동시에 실행되며 자원을 서로 나눠 쓰고 기다리는 구조라 충돌이 생기고, false는 한 번에 하나씩 순서대로 처리해서 기다림 자체가 발생하지 않음
 검증 결과: CPU와 메모리가 점진적으로 증가하다가 CPU 임계치(10%)에 도달하자 시스템이 자동으로 부하를 낮추는 제어가 동작하는 상태가 되었습니다.
-2026-05-20 06:47:03,253 [INFO] [CpuWorker] Current Load: 10.00%
-2026-05-20 06:47:05,356 [INFO] [CpuWorker] Cooldown complete (5.00%). Resuming load increase...
-2026-05-20 06:47:05,774 [INFO] [MemoryWorker] Current Heap: 250MB
-2026-05-20 06:47:06,358 [INFO] [CpuWorker] Current Load: 5.00%
-2026-05-20 06:47:08,459 [INFO] [CpuWorker] Peak reached (10.00%). Starting cooldown...
-2026-05-20 06:47:08,815 [INFO] [MemoryWorker] Current Heap: 275MB
+2026-05-21 06:57:37,766 [INFO] [CpuWorker] Current Load: 8.12%
+2026-05-21 06:57:39,870 [INFO] [CpuWorker] Peak reached (10.00%). Starting cooldown...
+2026-05-21 06:57:40,405 [INFO] [MemoryWorker] Current Heap: 200MB
+2026-05-21 06:57:40,872 [INFO] [CpuWorker] Current Load: 10.00%
+2026-05-21 06:57:42,974 [INFO] [CpuWorker] Cooldown complete (5.00%). Resuming load increase...
+2026-05-21 06:57:43,444 [INFO] [MemoryWorker] Current Heap: 225MB
+2026-05-21 06:57:43,976 [INFO] [CpuWorker] Current Load: 5.00%
+
+06:57:43 | PID:5352 | 252148KB | 1.5% | 1.7%
+[THREAD STATUS]
+   5352    5352 SNl+  0.2  1.5
+   5352    5425 SNl+  1.3  1.5
+   5352    5426 SNl+  0.2  1.5
 ```
