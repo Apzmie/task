@@ -1,4 +1,73 @@
 import argparse
+from datetime import datetime
+from typing import List
+
+# 임시 카테고리 목록 (추후 repository.read_categories() 등으로 대체 가능)
+EXISTING_CATEGORIES = ["food", "transport", "rent", "salary", "etc"]
+
+
+# ==========================================
+# 1. 대화형 입력 및 데이터 검증(Validation) 함수군
+# ==========================================
+
+def get_valid_date() -> str:
+    while True:
+        date_str = input("날짜(YYYY-MM-DD): ").strip()
+        try:
+            # 날짜 형식 및 유효성 검사 (예: 2월 30일 등 차단)
+            datetime.strptime(date_str, "%Y-%m-%d")
+            return date_str
+        except ValueError:
+            print("[오류] 날짜 형식이 올바르지 않거나 존재하지 않는 날짜입니다.")
+            print("[힌트] YYYY-MM-DD 형식으로 입력해주세요. (예: 2026-05-25)")
+            print("-" * 40)
+
+
+def get_valid_type() -> str:
+    while True:
+        type_str = input("타입(income/expense): ").strip().lower()
+        if type_str in ["income", "expense"]:
+            return type_str
+        print("[오류] 허용되지 않은 타입입니다.")
+        print("[힌트] 'income' 또는 'expense'만 입력 가능합니다.")
+        print("-" * 40)
+
+
+def get_valid_category(registered_categories: List[str]) -> str:
+    while True:
+        category_str = input("카테고리: ").strip()
+        if category_str in registered_categories:
+            return category_str
+        print(f"[오류] 존재하지 않는 카테고리입니다: '{category_str}'")
+        print(f"[힌트] 현재 등록된 카테고리: {', '.join(registered_categories)}")
+        print("-" * 40)
+
+
+def get_valid_amount() -> int:
+    while True:
+        amount_str = input("금액(양수): ").strip()
+        try:
+            amount = int(amount_str)
+            if amount > 0:
+                return amount
+            print("[오류] 금액은 0보다 커야 합니다.")
+        except ValueError:
+            print("[오류] 숫자가 아닌 값이 입력되었습니다.")
+        print("[힌트] 양의 정수만 입력해주세요. (예: 15000)")
+        print("-" * 40)
+
+
+def get_tags() -> List[str]:
+    tags_str = input("태그(쉼표로 구분, 없으면 엔터): ").strip()
+    if not tags_str:
+        return []
+    # 쉼표 분리 후 양끝 공백 제거, 빈 문자열 필터링
+    return [tag.strip() for tag in tags_str.split(",") if tag.strip()]
+
+
+# ==========================================
+# 2. 메인 CLI 파싱 및 분기 실행 함수
+# ==========================================
 
 def parse_args_and_run():
     # 1. 최상위 파서 생성 (--help 자동 지원)
@@ -14,7 +83,8 @@ def parse_args_and_run():
 
     # 4. 거래 검색 명령어 등록 (search)
     search_parser = subparsers.add_parser("search", help="조건 기반 거래 검색")
-    search_parser.add_argument("--from-date", dest="from_date", help="시작 날짜 (YYYY-MM-DD)") # --from은 파썬 예약어 문제 방지를 위해 내부에선 from_date로 매핑
+    # --from은 파이썬 예약어(from) 문제 방지를 위해 내부에선 from_date로 매핑
+    search_parser.add_argument("--from-date", dest="from_date", help="시작 날짜 (YYYY-MM-DD)")
     search_parser.add_argument("--to", help="종료 날짜 (YYYY-MM-DD)")
     search_parser.add_argument("--category", help="카테고리 필터")
     search_parser.add_argument("--type", choices=["income", "expense"], help="타입 필터 (income/expense)")
@@ -61,7 +131,6 @@ def parse_args_and_run():
 
     export_parser = subparsers.add_parser("export", help="조건에 맞는 거래를 CSV로 내보내기")
     export_parser.add_argument("--out", required=True, help="내보낼 CSV 파일 경로")
-    # 아래 옵션 중 하나 이상 필수 체크는 서비스 레이어 혹은 파싱 후 로직에서 처리
     export_parser.add_argument("--month", help="내보낼 월 (YYYY-MM)")
     export_parser.add_argument("--from-date", dest="from_date", help="시작 날짜 (YYYY-MM-DD)")
     export_parser.add_argument("--to", help="종료 날짜 (YYYY-MM-DD)")
@@ -69,16 +138,25 @@ def parse_args_and_run():
     # 인자 파싱
     args = parser.parse_args()
 
-    # 4. 명령어 분기 처리
+    # ------------------------------------------
+    # 명령어 분기 및 핵심 비즈니스 로직 연동부
+    # ------------------------------------------
     if args.command == "add":
         print("[안내] 대화형 입력을 시작합니다.")
-        date = input("날짜(YYYY-MM-DD): ")
-        type_ = input("타입(income/expense): ")
-        category = input("카테고리: ")
-        amount = input("금액(양수): ")
-        memo = input("메모(선택): ")
-        tags = input("태그(쉼표로 구분, 없으면 엔터): ")
-        print(f"[저장 완료] 입력된 값: {date}, {type_}, {category}, {amount}, {memo}, {tags}")
+        print("=" * 40)
+        
+        # 반복 입력 검증기 가동
+        date = get_valid_date()
+        type_ = get_valid_type()
+        category = get_valid_category(EXISTING_CATEGORIES)
+        amount = get_valid_amount()
+        memo = input("메모(선택): ").strip()
+        tags = get_tags()
+        
+        print("=" * 40)
+        # 가상의 생성 ID 결과 (추후 서비스 레이어에서 반환받는 구조로 대체)
+        mock_id = "TX-000012" 
+        print(f"[저장 완료] id={mock_id}")
 
     elif args.command == "list":
         print(f"[조회] 최신순으로 {args.limit}개의 목록을 출력합니다 (스트리밍).")
