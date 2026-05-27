@@ -1,19 +1,73 @@
 import argparse
 import sys
+import uuid  # 유일한 ID 생성을 위한 파이썬 표준 라이브러리
+
+# 우리가 방금 만든 모델과 검증 함수 가져오기
+from budget_app.models import Transaction, validate_date, validate_type, validate_amount, validate_category
+
+# 임시 카테고리 목록 (다음 단계에서 파일 저장으로 바뀔 예정입니다)
+EXISTING_CATEGORIES = ["food", "transport", "rent", "salary", "etc"]
 
 # ==========================================
 # 1. 명령어별 실행 함수 (프린트문으로 정상 작동 체크)
 # ==========================================
-
 def handle_add():
-    print("\n--- [대화형] 거래 추가 (add) ---")
-    date = input("날짜(YYYY-MM-DD): ").strip()
-    tx_type = input("타입(income/expense): ").strip()
-    category = input("카테고리: ").strip()
-    amount = input("금액(양수): ").strip()
-    memo = input("메모(선택): ").strip()
-    tags = input("태그(쉼표 구분, 선택): ").strip()
-    print(f"[체크] 입력받은 값: {date}, {tx_type}, {category}, {amount}원")
+    print("\n--- [대화형] 새로운 거래 추가 ---")
+    
+    # 1. 날짜 입력 및 검증
+    while True:
+        date = input("날짜(YYYY-MM-DD): ").strip()
+        if validate_date(date):
+            break
+        print("[오류] 날짜 형식이 올바르지 않습니다 (YYYY-MM-DD).")
+        print("[힌트] 예: 2026-05-27 처럼 대시(-)를 포함해 정확한 날짜를 입력하세요.\n")
+
+    # 2. 타입 입력 및 검증
+    while True:
+        tx_type = input("타입(income/expense): ").strip()
+        if validate_type(tx_type):
+            break
+        print("[오류] 타입은 'income' 또는 'expense'만 가능합니다.")
+        print("[힌트] 수입은 income, 지출은 expense를 입력하세요.\n")
+
+    # 3. 카테고리 입력 및 검증
+    while True:
+        category = input(f"카테고리 ({', '.join(EXISTING_CATEGORIES)}): ").strip()
+        if validate_category(category, EXISTING_CATEGORIES):
+            break
+        print(f"[오류] 존재하지 않는 카테고리입니다: '{category}'")
+        print(f"[힌트] 현재 등록된 카테고리 중에서 입력하세요.\n")
+
+    # 4. 금액 입력 및 검증
+    while True:
+        amount_raw = input("금액(양수 정수): ").strip()
+        amount = validate_amount(amount_raw)
+        if amount is not None:
+            break
+        print("[오류] 금액은 0보다 큰 양수 정수여야 합니다.")
+        print("[힌트] 콤마(,) 없이 숫자만 입력하세요. 예: 15000\n")
+
+    # 5. 선택 사항 입력
+    memo = input("메모(선택, 없으면 엔터): ").strip()
+    tags = input("태그(쉼표로 구분, 없으면 엔터): ").strip()
+
+    # 6. 유일한 ID 생성 후 데이터 구조(Dataclass)에 담기
+    # uuid4를 이용해 겹치지 않는 고유 고유 ID의 앞자리를 사용합니다.
+    tx_id = f"TX-{uuid.uuid4().hex[:6].upper()}"
+    
+    new_tx = Transaction(
+        id=tx_id,
+        type=tx_type,
+        date=date,
+        amount=amount,
+        category=category,
+        memo=memo,
+        tags=tags
+    )
+
+    # 7. 성공 메시지 출력
+    print(f"\n[저장 완료] id={new_tx.id}")
+    print(f"상세 정보: {new_tx.date} | {new_tx.type} | {new_tx.category} | {new_tx.amount}원 | {new_tx.memo}")
 
 def handle_list(args):
     print(f"\n--- 거래 목록 조회 (list) ---")
