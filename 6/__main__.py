@@ -4,6 +4,7 @@ import uuid  # 유일한 ID 생성을 위한 파이썬 표준 라이브러리
 
 # 우리가 방금 만든 모델과 검증 함수 가져오기
 from budget_app.models import Transaction, validate_date, validate_type, validate_amount, validate_category
+from budget_app.repository import DataRepository
 
 # 임시 카테고리 목록 (다음 단계에서 파일 저장으로 바뀔 예정입니다)
 EXISTING_CATEGORIES = ["food", "transport", "rent", "salary", "etc"]
@@ -11,8 +12,12 @@ EXISTING_CATEGORIES = ["food", "transport", "rent", "salary", "etc"]
 # ==========================================
 # 1. 명령어별 실행 함수 (프린트문으로 정상 작동 체크)
 # ==========================================
-def handle_add():
+# 📌 repo 인자를 받도록 변경하여 파일 데이터를 직접 다룹니다.
+def handle_add(repo: DataRepository):
     print("\n--- [대화형] 새로운 거래 추가 ---")
+    
+    # 📌 실시간으로 파일에서 등록된 카테고리 목록 가져오기
+    existing_categories = repo.load_categories()
     
     # 1. 날짜 입력 및 검증
     while True:
@@ -32,8 +37,8 @@ def handle_add():
 
     # 3. 카테고리 입력 및 검증
     while True:
-        category = input(f"카테고리 ({', '.join(EXISTING_CATEGORIES)}): ").strip()
-        if validate_category(category, EXISTING_CATEGORIES):
+        category = input(f"카테고리 ({', '.join(existing_categories)}): ").strip()
+        if validate_category(category, existing_categories):
             break
         print(f"[오류] 존재하지 않는 카테고리입니다: '{category}'")
         print(f"[힌트] 현재 등록된 카테고리 중에서 입력하세요.\n")
@@ -51,21 +56,17 @@ def handle_add():
     memo = input("메모(선택, 없으면 엔터): ").strip()
     tags = input("태그(쉼표로 구분, 없으면 엔터): ").strip()
 
-    # 6. 유일한 ID 생성 후 데이터 구조(Dataclass)에 담기
-    # uuid4를 이용해 겹치지 않는 고유 고유 ID의 앞자리를 사용합니다.
+    # 6. ID 생성 및 모델 생성
     tx_id = f"TX-{uuid.uuid4().hex[:6].upper()}"
-    
     new_tx = Transaction(
-        id=tx_id,
-        type=tx_type,
-        date=date,
-        amount=amount,
-        category=category,
-        memo=memo,
-        tags=tags
+        id=tx_id, type=tx_type, date=date, amount=amount,
+        category=category, memo=memo, tags=tags
     )
 
-    # 7. 성공 메시지 출력
+    # 📌 7. [핵심] 파일에 실제 데이터 영구 저장하기
+    # dataclass를 딕셔너리로 쉽게 바꾸기 위해 __dict__를 사용합니다.
+    repo.save_transaction(new_tx.__dict__)
+
     print(f"\n[저장 완료] id={new_tx.id}")
     print(f"상세 정보: {new_tx.date} | {new_tx.type} | {new_tx.category} | {new_tx.amount}원 | {new_tx.memo}")
 
@@ -186,9 +187,12 @@ def main():
     # 인자 분석
     args = parser.parse_args()
 
+    # 📌 사용자가 지정한 폴더(--data-dir)를 기반으로 저장소 실행 및 초기화 진행
+    repo = DataRepository(args.data_dir)
+
     # 명령어 분기 처리
     if args.command == "add":
-        handle_add()
+        handle_add(repo)
     elif args.command == "list":
         handle_list(args)
     elif args.command == "search":
