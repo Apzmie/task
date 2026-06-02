@@ -4,7 +4,7 @@ import json
 from typing import List, Dict
 
 class DataRepository:
-    """파일 저장 및 초기화를 담당하는 클래스"""
+    """데이터 저장과 관련된 모든 파일 작업(생성, 읽기, 쓰기, 수정)을 처리하는 클래스"""
     
     def __init__(self, data_dir: str):
         self.data_dir = data_dir
@@ -53,7 +53,7 @@ class DataRepository:
             for line in f:
                 line = line.strip()
                 if line:
-                    # json형태로 저장된 줄을 파이썬 딕셔너리로 변환
+                    # 줄 단위로 JSON 데이터를 읽어 카테고리 목록에 추가
                     data = json.loads(line)
                     categories.append(data["name"])
         return categories
