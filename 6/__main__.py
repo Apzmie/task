@@ -15,18 +15,23 @@ from budget_app.repository import DataRepository
 EXISTING_CATEGORIES = ["food", "transport", "rent", "salary", "etc"]
 
 # 1. 데코레이터 정의
-def time_and_log(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
+def time_and_log(func): # 1. 감쌀 함수를 받아옵니다.
+    @wraps(func)        # 2. 원래 함수의 정보를 그대로 유지합니다.
+    def wrapper(*args, **kwargs): # 3. 함수 실행 전후에 끼워 넣을 작업을 정의합니다.
+        
+        # [함수 실행 전 할 일]
         start_time = time.time()
         print(f"\n🚀 [LOG] '{func.__name__}' 명령어가 실행됩니다.")
         
-        result = func(*args, **kwargs)  # 실제 함수 실행
+        # [원래 함수 실행]
+        result = func(*args, **kwargs) 
         
+        # [함수 실행 후 할 일]
         end_time = time.time()
         print(f"⏱️ [LOG] '{func.__name__}' 실행 완료 (소요시간: {end_time - start_time:.4f}초)")
-        return result
-    return wrapper
+        
+        return result # 4. 원래 함수가 내뱉어야 할 결과를 대신 전달합니다.
+    return wrapper    # 5. 이제 기능이 추가된 새로운 함수를 돌려줍니다.
 
 # ==========================================
 # 1. 명령어별 실행 함수 (프린트문으로 정상 작동 체크)
@@ -91,22 +96,23 @@ def handle_add(repo: DataRepository):
 
 @time_and_log
 def handle_list(args, repo: DataRepository):
+    # 1. 목록 조회 화면의 제목과 표의 머리글을 출력
     print(f"\n--- 거래 목록 조회 (list) ---")
     print(f"[안내] 최신순으로 최대 {args.limit}개의 데이터를 출력합니다.\n")
     print("-" * 70)
     print(f"{'거래 ID':<10} | {'날짜':<10} | {'타입':<8} | {'카테고리':<10} | {'금액':<10} | {'메모'}")
     print("-" * 70)
 
-    # 레포지토리의 제너레이터 가져오기
+    # 2. 저장소에서 최신 거래 내역부터 역순으로 하나씩 가져오는 제너레이터(데이터 통로) 준비
     tx_stream = repo.load_transactions_backward()
     
-    count = 0
+    count = 0  # 출력한 데이터 개수를 세기 위한 변수
     for tx in tx_stream:
-        # 사용자가 요청한 limit 개수만큼만 출력하고 멈춥니다.
+        # 3. 사용자가 요청한 개수(args.limit)만큼 출력했다면 반복문을 즉시 종료
         if count >= args.limit:
             break
             
-        # 데이터 출력 포맷 맞추기
+        # 4. 딕셔너리 데이터에서 각 항목을 추출 (값이 없을 경우 빈 문자열이나 0을 기본값으로 사용)
         tx_id = tx.get("id", "")
         date = tx.get("date", "")
         tx_type = tx.get("type", "")
@@ -114,9 +120,11 @@ def handle_list(args, repo: DataRepository):
         amount = tx.get("amount", 0)
         memo = tx.get("memo", "")
         
+        # 5. 형식에 맞춰 출력 (숫자는 1,000 단위 콤마 포함, 각 항목은 지정된 간격으로 정렬)
         print(f"{tx_id:<10} | {date:<10} | {tx_type:<8} | {category:<10} | {amount:<10,} | {memo}")
-        count += 1
+        count += 1 # 출력한 데이터 개수 1 증가
 
+    # 6. 루프가 끝난 뒤 출력된 데이터가 하나도 없다면 안내 메시지 출력
     if count == 0:
         print("[안내] 등록된 거래 내역이 없습니다.")
     print("-" * 70)
@@ -179,21 +187,25 @@ def handle_search(args, repo: DataRepository):
     print("-" * 75)
 
 def handle_summary(args, repo: DataRepository):
+    # 사용자가 보고 싶은 '달(month)'과 '상위 몇 개까지 볼지(top_n)'를 가져옵니다.
     target_month = args.month.strip()
     top_n = args.top
 
     print(f"\n--- 월별 요약 및 보고서 (summary) ---")
     print(f"[조회 월]: {target_month} | [지출 상위 카테고리]: TOP {top_n}\n")
 
-    total_income = 0
-    total_expense = 0
-    category_expenses = {}
+    # 통계용 변수들을 초기화합니다.
+    total_income = 0        # 총 수입
+    total_expense = 0       # 총 지출
+    category_expenses = {}  # 카테고리별 지출 금액을 담을 사전(dict)
 
+    # 전체 데이터를 최근순으로 하나씩 불러옵니다.
     tx_stream = repo.load_transactions_backward()
-    has_data = False
+    has_data = False        # 데이터가 있는지 확인하는 표시
 
     for tx in tx_stream:
         date = tx.get("date", "")
+        # 조회하려는 달이 아니면 넘어갑니다.
         if date[:7] != target_month:
             continue
 
@@ -202,54 +214,59 @@ def handle_summary(args, repo: DataRepository):
         amount = tx.get("amount", 0)
         category = tx.get("category", "")
 
+        # 수입인지 지출인지 구분하여 더합니다.
         if tx_type == "income":
             total_income += amount
         elif tx_type == "expense":
             total_expense += amount
+            # 카테고리별로 지출 합계를 계산합니다.
             if category in category_expenses:
                 category_expenses[category] += amount
             else:
                 category_expenses[category] = amount
 
+    # 데이터가 아예 없으면 여기서 종료합니다.
     if not has_data:
         print(f"[안내] {target_month} 월은 등록된 가계부 데이터가 없습니다.")
         return
 
+    # 수입에서 지출을 뺀 잔액을 계산합니다.
     balance = total_income - total_expense
 
-    # 📌 [여기서부터 수정/추가되는 핵심 예산 연동 로직]
-    # 해당 월에 설정된 예산이 있는지 레포지토리에서 불러옵니다.
+    # [예산 연동] 저장소에서 해당 월의 예산 설정을 불러옵니다.
     budget_amount = repo.get_budget_by_month(target_month)
 
     print("=" * 45)
     print(f"총 수입 : {total_income:,}원")
     print(f"총 지출 : {total_expense:,}원")
-    print(f"잔   액 : {balance:,}원")
+    print(f"잔   액 : {balance:,}원")
     
-    # 예산 데이터가 존재하는 경우에만 사용률과 경고를 출력합니다.
+    # 예산이 설정되어 있을 경우에만 비교 결과를 출력합니다.
     if budget_amount is not None:
-        # 사용률 계산 (지출 / 예산 * 100)
+        # 예산 대비 몇 퍼센트나 썼는지 계산합니다.
         if budget_amount > 0:
             usage_rate = (total_expense / budget_amount) * 100
         else:
             usage_rate = 0.0
             
-        print(f"예   산 : {budget_amount:,}원 (사용률 {usage_rate:.1f}%)")
+        print(f"예   산 : {budget_amount:,}원 (사용률 {usage_rate:.1f}%)")
         
-        # 만약 지출이 예산을 초과했다면 경고 메시지를 띄웁니다!
+        # 지출이 예산을 넘었는지 확인하고 경고를 줍니다.
         if total_expense > budget_amount:
             over_amount = total_expense - budget_amount
             print(f"🚨 [경고] 설정한 예산을 {over_amount:,}원 초과했습니다!")
     else:
-        print("예   산 : 설정된 예산이 없습니다.")
+        print("예   산 : 설정된 예산이 없습니다.")
     print("=" * 45)
 
-    # (이하 지출 TOP N 출력 코드는 이전과 동일)
+    # [지출 TOP N 출력] 지출이 많은 순서대로 정리해서 보여줍니다.
     print(f"\n[지출 TOP {top_n} 카테고리]")
     if not category_expenses:
         print("지출 내역이 없습니다.")
     else:
+        # 지출 금액(x[1])을 기준으로 내림차순 정렬합니다.
         sorted_categories = sorted(category_expenses.items(), key=lambda x: x[1], reverse=True)
+        # 상위 N개만 뽑아서 출력합니다.
         for index, (cat_name, cat_amount) in enumerate(sorted_categories[:top_n], start=1):
             print(f"{index}) {cat_name:<10} {cat_amount:,}원")
     print("=" * 45)
@@ -409,24 +426,29 @@ def handle_delete(args, repo: DataRepository):
         sys.exit(1)
 
 def handle_import(args, repo: DataRepository):
+    # 가져올 CSV 파일의 경로를 확인합니다.
     from_file = args.from_file.strip()
     print(f"\n--- CSV 가져오기 (import) ---")
     
+    # [파일 확인] 경로에 실제 파일이 있는지 먼저 체크합니다. 없으면 프로그램을 종료합니다.
     if not os.path.exists(from_file):
         print(f"[오류] 가져올 CSV 파일이 해당 경로에 존재하지 않습니다: {from_file}")
         sys.exit(1)
 
+    # 미리 카테고리 목록을 불러오고, 통계용 변수를 초기화합니다.
     existing_categories = repo.load_categories()
-    valid_transactions = []
-    skipped_count = 0
-    imported_count = 0
+    valid_transactions = [] # 올바른 데이터만 모아둘 리스트
+    skipped_count = 0       # 형식이 맞지 않아 건너뛴 데이터 수
+    imported_count = 0      # 성공적으로 가져온 데이터 수
 
+    # CSV 파일을 읽기 모드로 엽니다.
     with open(from_file, "r", encoding="utf-8") as f:
-        # csv.DictReader는 첫 줄의 헤더를 기준으로 데이터를 딕셔너리로 예쁘게 파싱해 줍니다.
+        # csv.DictReader: CSV 파일의 각 줄을 이름표(헤더)가 붙은 딕셔너리로 바꿔줍니다.
         reader = csv.DictReader(f)
         
-        for index, row in enumerate(reader, start=2):  # 헤더가 1번 줄이므로 데이터는 2번 줄부터 시작
-            # 필수값 양식 받아오기
+        # 각 줄을 하나씩 확인합니다. (데이터는 2번째 줄부터 시작한다고 가정)
+        for index, row in enumerate(reader, start=2):
+            # 파일에서 각 항목의 값을 가져와 정리합니다.
             date = row.get("date", "").strip()
             tx_type = row.get("type", "").strip()
             category = row.get("category", "").strip()
@@ -434,17 +456,19 @@ def handle_import(args, repo: DataRepository):
             memo = row.get("memo", "").strip()
             tags = row.get("tags", "").strip()
 
-            # 📌 [안전망] 필수 데이터 유효성 일괄 검증
+            # [안전망 1] 날짜, 타입, 카테고리가 규칙에 맞는지 검사합니다.
+            # 하나라도 틀리면 이 줄은 무시(skip)합니다.
             if not validate_date(date) or not validate_type(tx_type) or not validate_category(category, existing_categories):
                 skipped_count += 1
                 continue
                 
+            # [안전망 2] 금액이 숫자로 올바르게 변환되는지 검사합니다.
             amount = validate_amount(amount_raw)
             if amount is None:
                 skipped_count += 1
                 continue
 
-            # 검증을 통과한 데이터는 시스템용 고유 ID를 새로 부여하여 담습니다.
+            # [데이터 정리] 모든 검사를 통과했다면, 시스템에서 쓸 고유한 ID를 부여합니다.
             tx_id = f"TX-IMP{uuid.uuid4().hex[:4].upper()}"
             new_tx = {
                 "id": tx_id,
@@ -455,43 +479,49 @@ def handle_import(args, repo: DataRepository):
                 "memo": memo,
                 "tags": tags
             }
+            # 검증 완료된 데이터를 리스트에 추가합니다.
             valid_transactions.append(new_tx)
             imported_count += 1
 
-    # 검증이 끝난 정상 데이터들을 파일에 일괄 누적 저장
+    # [저장] 리스트에 모아둔 정상 데이터들을 한꺼번에 저장소에 저장합니다.
     if valid_transactions:
         repo.save_transactions_bulk(valid_transactions)
 
+    # 최종 결과(성공 수, 실패 수)를 사용자에게 보여줍니다.
     print(f"[완료] imported={imported_count}, skipped={skipped_count}")
 
 def handle_export(args, repo: DataRepository):
+    # 사용자가 저장하고 싶은 파일 이름을 가져옵니다.
     out_file = args.out.strip()
     print(f"\n--- CSV 내보내기 (export) ---")
     print(f"[안내] 지정된 조건의 가계부 데이터를 {out_file} 파일로 저장합니다.")
 
-    # 1. CSV 헤더(컬럼명) 규칙 고정
+    # 1. CSV 파일의 맨 윗줄에 들어갈 제목(항목 이름)을 정합니다.
     headers = ["date", "type", "category", "amount", "memo", "tags"]
     
-    # 2. 파일 뒤에서부터 한 줄씩 읽는 제너레이터 연결
+    # 2. 저장소에서 가계부 데이터를 최근순(뒤에서부터)으로 한 줄씩 가져올 준비를 합니다.
     tx_stream = repo.load_transactions_backward()
     
-    count = 0
-    is_first_row = True
+    count = 0              # 내보낸 데이터 개수를 셀 변수입니다.
+    is_first_row = True    # 파일의 첫 줄(헤더)을 쓸지 말지 결정하기 위한 표시입니다.
 
+    # 가계부 데이터를 하나씩 꺼내서 확인합니다.
     for tx in tx_stream:
         date = tx.get("date", "")
         
-        # [조건 검증 1] --month 조건이 있을 때 맞지 않으면 탈락!
+        # [조건 검증 1] 특정 '월'만 골라내기
+        # 사용자가 입력한 달과 데이터의 날짜가 다르면 이 데이터는 건너뜁니다.
         if args.month and date[:7] != args.month.strip():
             continue
             
-        # [조건 검증 2] --from, --to 기간 조건이 있을 때 범위를 벗어나면 탈락!
+        # [조건 검증 2] 특정 '기간' 내의 데이터만 골라내기
+        # 시작 날짜보다 빠르거나, 종료 날짜보다 늦으면 건너뜁니다.
         if args.from_date and date < args.from_date.strip():
             continue
         if args.to_date and date > args.to_date.strip():
             continue
 
-        # 모든 조건을 통과했다면 CSV에 담을 데이터 순서 정렬
+        # [데이터 준비] 모든 조건을 통과했다면 CSV에 저장할 형식으로 정리합니다.
         row = [
             tx.get("date"),
             tx.get("type"),
@@ -501,15 +531,16 @@ def handle_export(args, repo: DataRepository):
             tx.get("tags", "")
         ]
         
-        # 처음 쓸 때는 헤더를 먼저 포함하여 내보냅니다.
+        # [파일 쓰기] 만약 이게 첫 번째로 저장하는 데이터라면, 먼저 제목(헤더)부터 씁니다.
         if is_first_row:
             repo.append_to_csv(out_file, headers, is_first=True)
             is_first_row = False
             
-        # 데이터 행 쓰기 (스트리밍 유지)
+        # 데이터를 파일에 한 줄 추가합니다.
         repo.append_to_csv(out_file, row, is_first=False)
-        count += 1
+        count += 1 # 데이터가 하나 저장될 때마다 숫자를 1 올립니다.
 
+    # 내보내기가 완료된 후 결과를 알려줍니다.
     if count == 0:
         print(f"[안내] 해당 조건에 맞는 데이터가 없어 CSV 파일이 생성되지 않았습니다.")
     else:
@@ -521,13 +552,18 @@ def handle_export(args, repo: DataRepository):
 # ==========================================
 
 def main():
+    # 1. 프로그램 기본 정보 설정 (도움말 및 실행 명령어 정의)
     parser = argparse.ArgumentParser(
         description="파일 기반 가계부 콘솔 프로그램",
         prog="python -m budget_app"
     )
-    # 공통 옵션: 데이터 저장 디렉토리 지정 (-data-dir은 요구사항 반영하되 리눅스 표준인 --data-dir로 세팅)
+
+    # 2. 공통 옵션 설정 (모든 명령어에서 공통으로 사용할 데이터 경로 지정)
+    # --data-dir 인자를 통해 데이터를 저장할 폴더를 지정하며, 없으면 기본값인 './data'를 사용합니다.
     parser.add_argument("--data-dir", default="./data", help="데이터 저장 폴더 경로 (기본값: ./data)")
-    
+
+    # 3. 하위 명령어(sub-command) 기능 활성화
+    # 'add', 'list', 'delete' 등과 같이 기능을 나눌 수 있도록 서브 파서를 생성합니다.
     subparsers = parser.add_subparsers(dest="command", required=True, help="실행할 명령어를 선택하세요.")
 
     # (1) add
