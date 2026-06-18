@@ -1,3 +1,4 @@
+```
 # 1. 빈 데이터베이스 파일 생성
 sqlite3 school.db
 
@@ -11,3 +12,4 @@ sqlite> .read data.sql
 sqlite> .headers on
 sqlite> .mode column
 sqlite> .read queries.sql
+```
