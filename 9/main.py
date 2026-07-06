@@ -95,6 +95,28 @@ class MiniGit:
                     visited.add(neighbor)
                     queue.append((neighbor, path + [neighbor]))
         return "No path"
+    
+    def get_topological_log(self):
+        """부모가 자식보다 먼저 나오는 위상 정렬 순서로 커밋 반환"""
+        visited = set()
+        result = []
+
+        def dfs(commit_hash):
+            visited.add(commit_hash)
+            commit = self.commits[commit_hash]
+            # 부모들을 먼저 방문 (이미 방문했으면 건너뜀)
+            for parent_hash in commit.parents:
+                if parent_hash not in visited:
+                    dfs(parent_hash)
+            # 모든 부모를 처리한 후 현재 커밋을 결과에 추가
+            result.append(commit)
+
+        # 모든 커밋에 대해 DFS 수행 (여러 브랜치가 있을 수 있으므로)
+        for h in self.commits:
+            if h not in visited:
+                dfs(h)
+    
+        return result
 
 # --- 3. CLI 핸들러 ---
 def run():
@@ -114,13 +136,16 @@ def run():
             elif cmd == "SWITCH": git.current_branch = parts[1]
             elif cmd == "COMMIT": print(git.commit(parts[1]))
             elif cmd == "LOG":
-                # 정렬 옵션에 따라 정렬 알고리즘 적용
-                if "--sort-by=date" in line:
+                # 1. 정렬 옵션이 없는 경우: 위상 정렬 적용
+                if "--sort-by" not in line:
+                    for c in git.get_topological_log(): 
+                        print(c)
+    
+                # 2. 정렬 옵션이 있는 경우 (기존 로직 유지)
+                elif "--sort-by=date" in line:
                     for c in git.quick_sort(list(git.commits.values()), lambda c: c.timestamp): print(c)
                 elif "--sort-by=author" in line:
                     for c in git.quick_sort(list(git.commits.values()), lambda c: c.author): print(c)
-                else:
-                    for c in git.commits.values(): print(c)
             elif cmd == "PATH": print(f"Path: {git.find_path(parts[1], parts[2])}")
             elif cmd == "ANCESTORS":
                 anc_hashes = git.get_ancestors(parts[1])
