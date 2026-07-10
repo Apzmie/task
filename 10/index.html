@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>My Portfolio</title>
+
+    <link rel="stylesheet" href="css/style.css">
+
+    <script src="js/main.js" defer></script>
+</head>
+
+<body>
+
+<header>
+    <nav class="navbar">
+
+        <a href="#" class="logo">
+            Portfolio
+        </a>
+
+        <button class="hamburger" aria-label="메뉴 열기">
+            ☰
+        </button>
+
+        <ul class="nav-menu">
+            <li><a href="#hero">Home</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#skills">Skills</a></li>
+            <li><a href="#projects">Projects</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ul>
+
+
+        <button class="theme-btn">
+            🌙
+        </button>
+
+    </nav>
+</header>
+
+
+<main>
+
+
+<section id="hero" class="hero reveal">
+
+    <article>
+
+        <h1>
+            Hello, I'm Developer
+        </h1>
+
+        <p>
+            웹 개발을 공부하고 성장하는 개발자입니다.
+        </p>
+
+
+        <div>
+            <a href="#projects" class="btn">
+                View Projects
+            </a>
+
+            <a href="#contact" class="btn">
+                Contact
+            </a>
+        </div>
+
+
+    </article>
+
+
+</section>
+
+
+
+<section id="about" class="section reveal">
+
+    <h2>
+        About Me
+    </h2>
+
+
+    <article class="about-container">
+
+        <img 
+        src="images/profile.jpg"
+        alt="개발자 프로필 사진"
+        >
+
+
+        <p>
+            HTML, CSS, JavaScript를 기반으로
+            사용자 경험을 만드는 프론트엔드 개발자입니다.
+        </p>
+
+    </article>
+
+
+</section>
+
+
+
+
+<section id="skills" class="section reveal">
+
+<h2>
+    Skills
+</h2>
+
+
+<ul class="skills-list">
+
+<li>HTML</li>
+<li>CSS</li>
+<li>JavaScript</li>
+<li>Git</li>
+<li>GitHub</li>
+
+</ul>
+
+
+</section>
+
+
+
+
+
+<section id="projects" class="section reveal">
+
+
+<h2>
+    Projects
+</h2>
+
+
+<div id="project-list">
+
+<p>
+프로젝트 불러오는 중...
+</p>
+
+
+</div>
+
+
+
+</section>
+
+
+
+
+
+<section id="contact" class="section reveal">
+
+
+<h2>
+    Contact
+</h2>
+
+
+<form id="contact-form">
+
+
+<label for="name">
+이름
+</label>
+
+<input 
+id="name"
+type="text"
+>
+
+
+<p class="error" id="name-error"></p>
+
+
+
+<label for="email">
+이메일
+</label>
+
+<input 
+id="email"
+type="email"
+>
+
+
+<p class="error" id="email-error"></p>
+
+
+
+
+<label for="message">
+메시지
+</label>
+
+<textarea
+id="message"
+></textarea>
+
+
+<p class="error" id="message-error"></p>
+
+
+
+<button type="submit" class="btn">
+전송
+</button>
+
+
+<p id="success-message"></p>
+
+
+
+</form>
+
+
+</section>
+
+
+
+</main>
+
+
+
+
+
+<footer>
+
+<p>
+© 2026 Developer Portfolio
+</p>
+
+
+<a href="https://github.com">
+GitHub
+</a>
+
+
+<a href="#">
+LinkedIn
+</a>
+
+
+</footer>
+
+
+
+
+<button id="top-btn">
+↑
+</button>
+
+
+
+</body>
+</html>
