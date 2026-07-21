@@ -622,30 +622,37 @@ def main():
     # 📌 사용자가 지정한 폴더(--data-dir)를 기반으로 저장소 실행 및 초기화 진행
     repo = DataRepository(args.data_dir)
 
-    # 명령어 분기 처리
-    if args.command == "add":
-        handle_add(repo)
-    elif args.command == "list":
-        handle_list(args, repo)
-    elif args.command == "search":
-        handle_search(args, repo)
-    elif args.command == "summary":
-        handle_summary(args, repo)
-    elif args.command == "budget":
-        handle_budget(args, repo)
-    elif args.command == "category":
-        handle_category(args, repo)  # 📌 여기에 repo를 추가로 전달해 줍니다.
-    elif args.command == "update":
-        handle_update(repo)      # 📌 repo를 넘겨주도록 수정
-    elif args.command == "delete":
-        handle_delete(args, repo)  # 📌 args와 repo를 둘 다 넘겨주도록 수정
-    elif args.command == "import":
-        handle_import(args, repo)  # 📌 repo 추가
-    elif args.command == "export":
-        if not args.month and not (args.from_date and args.to_date):
-            print("[오류] export는 --month 또는 --from과 --to 조건이 필수로 필요합니다.", file=sys.stderr)
-            sys.exit(1)
-        handle_export(args, repo)  # 📌 repo 추가
+    try:
+        # 명령어 분기 처리
+        if args.command == "add":
+            handle_add(repo)
+        elif args.command == "list":
+            handle_list(args, repo)
+        elif args.command == "search":
+            handle_search(args, repo)
+        elif args.command == "summary":
+            handle_summary(args, repo)
+        elif args.command == "budget":
+            handle_budget(args, repo)
+        elif args.command == "category":
+            handle_category(args, repo)  # 📌 여기에 repo를 추가로 전달해 줍니다.
+        elif args.command == "update":
+            handle_update(repo)      # 📌 repo를 넘겨주도록 수정
+        elif args.command == "delete":
+            handle_delete(args, repo)  # 📌 args와 repo를 둘 다 넘겨주도록 수정
+        elif args.command == "import":
+            handle_import(args, repo)  # 📌 repo 추가
+        elif args.command == "export":
+            if not args.month and not (args.from_date and args.to_date):
+                print("[오류] export는 --month 또는 --from과 --to 조건이 필수로 필요합니다.", file=sys.stderr)
+                sys.exit(1)
+            handle_export(args, repo)  # 📌 repo 추가
+    except (KeyboardInterrupt, EOFError):
+        print("\n[안내] 사용자에 의해 프로그램이 종료되었습니다.")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n[시스템 예외 발생] 예상치 못한 오류입니다: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
