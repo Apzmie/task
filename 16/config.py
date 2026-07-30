@@ -9,7 +9,7 @@ import os
 API_KEY = os.getenv("AI_API_KEY")
 
 # 기본 모델
-DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
 
 # 기본 생성 옵션
 DEFAULT_TEMPERATURE = 0.3
