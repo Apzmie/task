@@ -193,69 +193,38 @@ document
 // =======================
 
 
-const username = "본인아이디";
-
-
-
 const loadProjects = async () => {
 
-
-    projectList.innerHTML =
-        "<p>로딩 중...</p>";
-
-
+    projectList.innerHTML = "<p>로딩 중...</p>";
 
     try {
 
-
-        const response =
-            await fetch(
-                `https://api.github.com/users/${username}/repos`
-            );
-
-
+        const response = await fetch(
+            "https://api.github.com/repos/Apzmie/task"
+        );
 
         if (!response.ok) {
-
             throw new Error();
-
         }
 
+        const repo = await response.json();
 
+        // 과제에서 filter, map을 사용하기 위해 배열로 만듦
+        const repos = [repo];
 
-        const repos =
-            await response.json();
-
-
-
-
-
-        const filtered =
-            repos.filter(
-                (repo) => !repo.fork
-            );
-
-
-
-
+        const filtered = repos.filter(
+            (repo) => !repo.fork
+        );
 
         if (filtered.length === 0) {
-
             projectList.innerHTML =
                 "<p>표시할 프로젝트가 없습니다.</p>";
-
             return;
-
         }
-
-
-
-
 
         projectList.innerHTML =
             filtered.map(
                 (repo) => {
-
 
                     const {
                         name,
@@ -264,58 +233,37 @@ const loadProjects = async () => {
                         stargazers_count
                     } = repo;
 
-
-
                     return `
+                        <article class="project-card">
 
-<article class="project-card">
+                            <h3>${name}</h3>
 
-    <h3>${name}</h3>
+                            <p>
+                                ${description ?? "설명 없음"}
+                            </p>
 
-    <p>
-        ${description ?? "설명 없음"}
-    </p>
+                            <p>
+                                ⭐ ${stargazers_count}
+                            </p>
 
+                            <a href="${html_url}" target="_blank">
+                                보기
+                            </a>
 
-    <p>
-        ⭐ ${stargazers_count}
-    </p>
-
-
-    <a href="${html_url}" target="_blank">
-        보기
-    </a>
-
-
-</article>
-
-`;
-
+                        </article>
+                    `;
                 }
-
             ).join("");
 
-
-
-    }
-
-
-    catch (error) {
-
+    } catch (error) {
 
         projectList.innerHTML = `
+            <p>프로젝트를 불러올 수 없습니다.</p>
 
-<p>
-    프로젝트를 불러올 수 없습니다.
-</p>
-
-<button id="retry">
-    다시 시도
-</button>
-
-`;
-
-
+            <button id="retry">
+                다시 시도
+            </button>
+        `;
 
         document
             .querySelector("#retry")
@@ -323,15 +271,8 @@ const loadProjects = async () => {
                 "click",
                 loadProjects
             );
-
-
     }
-
-
-
 };
-
-
 
 loadProjects();
 
@@ -485,3 +426,5 @@ form.addEventListener(
     }
 
 );
+
+
